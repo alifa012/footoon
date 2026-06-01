@@ -29,11 +29,11 @@ FootToon is a full-stack scaffold for turning live football trends into cartoon 
 
 1. Copy environment template:
    ```bash
-   cp /tmp/workspace/alifa012/footoon/backend/.env.example /tmp/workspace/alifa012/footoon/backend/.env
+   cp backend/.env.example backend/.env
    ```
 2. Install dependencies:
    ```bash
-   cd /tmp/workspace/alifa012/footoon/backend
+   cd backend
    npm install
    ```
 3. Run backend:
@@ -45,11 +45,11 @@ FootToon is a full-stack scaffold for turning live football trends into cartoon 
 
 1. Copy environment template:
    ```bash
-   cp /tmp/workspace/alifa012/footoon/frontend/.env.example /tmp/workspace/alifa012/footoon/frontend/.env
+   cp frontend/.env.example frontend/.env
    ```
 2. Install dependencies:
    ```bash
-   cd /tmp/workspace/alifa012/footoon/frontend
+   cd frontend
    npm install
    ```
 3. Run frontend:
@@ -62,7 +62,7 @@ Frontend defaults to `http://localhost:5173`, backend defaults to `http://localh
 ## Database
 
 - SQLite database path is configured with `DB_PATH`.
-- Schema file: `/tmp/workspace/alifa012/footoon/backend/src/db/schema.sql`
+- Schema file: `backend/src/db/schema.sql`
 - Tables:
   - `trends`
   - `script_ideas`
@@ -71,9 +71,9 @@ The backend auto-initializes schema on startup.
 
 ## Validation Commands
 
-- Backend tests: `cd /tmp/workspace/alifa012/footoon/backend && npm test`
-- Frontend lint: `cd /tmp/workspace/alifa012/footoon/frontend && npm run lint`
-- Frontend build: `cd /tmp/workspace/alifa012/footoon/frontend && npm run build`
+- Backend tests: `cd backend && npm test`
+- Frontend lint: `cd frontend && npm run lint`
+- Frontend build: `cd frontend && npm run build`
 
 ## Next Steps
 

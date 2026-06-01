@@ -1,7 +1,18 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { db } = require('../config/database');
 
 const router = express.Router();
+
+const scriptsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many script requests, please try again soon.' },
+});
+
+router.use(scriptsLimiter);
 
 router.get('/', (req, res, next) => {
   db.all(
