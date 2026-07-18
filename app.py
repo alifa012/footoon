@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime, timezone
+from html import escape
 from typing import Any
 from urllib.parse import parse_qs
 
@@ -255,21 +256,34 @@ def get_ideas() -> list[dict[str, Any]]:
     return list_scripts()
 
 
+def _extract_prompt(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+    stripped = value.strip()
+    return stripped or None
+
+
 @app.post("/api/ideas")
 async def create_idea(request: Request) -> dict[str, Any]:
     prompt: str | None = None
     content_type = request.headers.get("content-type", "")
+
     if "application/json" in content_type:
         payload = await request.json()
-        prompt = payload.get("prompt") if isinstance(payload, dict) else None
+        if isinstance(payload, dict):
+            prompt = _extract_prompt(payload.get("prompt"))
     elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
-        body = (await request.body()).decode()
-        prompt = parse_qs(body).get("prompt", [None])[0]
+        form = await request.form()
+        prompt = _extract_prompt(form.get("prompt"))
+    else:
+        body = (await request.body()).decode(errors="ignore")
+        prompt = _extract_prompt(parse_qs(body).get("prompt", [None])[0])
+
     return build_idea(prompt)
 
 
 @app.post("/api/ideas/{idea_id}/remix")
-def remix_idea(idea_id: int, request: RemixRequest) -> dict[str, Any]:
+def remix_idea(idea_id: int, request: RemixRequest | None = None) -> dict[str, Any]:
     with get_conn() as conn:
         row = conn.execute("SELECT * FROM scripts WHERE id = ?", (idea_id,)).fetchone()
     if row is None:
@@ -288,7 +302,8 @@ def remix_idea(idea_id: int, request: RemixRequest) -> dict[str, Any]:
         social_context = {"general": ["No social context"]}
     song_context = [item.strip() for item in row["song_context"].split("|") if item.strip()]
 
-    title, body = generate_script_idea(football_context, social_context, song_context, request.prompt)
+    prompt = request.prompt if request else None
+    title, body = generate_script_idea(football_context, social_context, song_context, prompt)
     new_id = persist_script(title, body, football_context, social_context, song_context)
     return {"id": new_id, "title": title, "body": body}
 
@@ -312,7 +327,10 @@ def home() -> str:
     items = list_scripts()
     list_markup = "".join(
         [
-            f"<li><strong>{item['title']}</strong> - <a href='/api/ideas/{item['id']}/download'>Download</a></li>"
+            "<li><strong>{}</strong> - <a href='/api/ideas/{}/download'>Download</a></li>".format(
+                escape(str(item["title"])),
+                int(item["id"]),
+            )
             for item in items
         ]
     )

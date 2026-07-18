@@ -59,6 +59,28 @@ class FootToonAppTests(unittest.TestCase):
         self.assertEqual(created.status_code, 200)
         self.assertIn("Form prompt", created.json()["body"])
 
+    def test_create_idea_accepts_multipart_payload(self):
+        self.app_module.fetch_football_context = lambda: ["Team A vs Team B (1-0)"]
+        self.app_module.fetch_social_trends = lambda: {"reddit": ["Meme moment"]}
+        self.app_module.fetch_song_trends = lambda: ["Top Song"]
+
+        created = self.client.post("/api/ideas", files={"prompt": (None, "Multipart prompt")})
+        self.assertEqual(created.status_code, 200)
+        self.assertIn("Multipart prompt", created.json()["body"])
+
+    def test_remix_idea_allows_empty_body(self):
+        self.app_module.fetch_football_context = lambda: ["Team A vs Team B (1-0)"]
+        self.app_module.fetch_social_trends = lambda: {"reddit": ["Meme moment"]}
+        self.app_module.fetch_song_trends = lambda: ["Top Song"]
+
+        created = self.client.post("/api/ideas", json={"prompt": "Original"})
+        self.assertEqual(created.status_code, 200)
+        idea_id = created.json()["id"]
+
+        remixed = self.client.post(f"/api/ideas/{idea_id}/remix")
+        self.assertEqual(remixed.status_code, 200)
+        self.assertIn("Cold open:", remixed.json()["body"])
+
 
 if __name__ == "__main__":
     unittest.main()
