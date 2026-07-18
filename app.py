@@ -263,6 +263,28 @@ def _extract_prompt(value: Any) -> str | None:
     return stripped or None
 
 
+def _extract_multipart_field(body: bytes, content_type: str, field_name: str) -> str | None:
+    boundary_marker = "boundary="
+    if boundary_marker not in content_type:
+        return None
+
+    boundary = content_type.split(boundary_marker, 1)[1].split(";", 1)[0].strip().strip('"')
+    if not boundary:
+        return None
+
+    delimiter = f"--{boundary}".encode()
+    for part in body.split(delimiter):
+        if not part or part in (b"--", b"--\r\n"):
+            continue
+        if f'name="{field_name}"'.encode() not in part:
+            continue
+        _, separator, value = part.partition(b"\r\n\r\n")
+        if not separator:
+            continue
+        return _extract_prompt(value.rstrip(b"\r\n-").decode(errors="ignore"))
+    return None
+
+
 @app.post("/api/ideas")
 async def create_idea(request: Request) -> dict[str, Any]:
     prompt: str | None = None
@@ -272,9 +294,11 @@ async def create_idea(request: Request) -> dict[str, Any]:
         payload = await request.json()
         if isinstance(payload, dict):
             prompt = _extract_prompt(payload.get("prompt"))
-    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
-        form = await request.form()
-        prompt = _extract_prompt(form.get("prompt"))
+    elif "application/x-www-form-urlencoded" in content_type:
+        body = (await request.body()).decode(errors="ignore")
+        prompt = _extract_prompt(parse_qs(body).get("prompt", [None])[0])
+    elif "multipart/form-data" in content_type:
+        prompt = _extract_multipart_field(await request.body(), content_type, "prompt")
     else:
         body = (await request.body()).decode(errors="ignore")
         prompt = _extract_prompt(parse_qs(body).get("prompt", [None])[0])
